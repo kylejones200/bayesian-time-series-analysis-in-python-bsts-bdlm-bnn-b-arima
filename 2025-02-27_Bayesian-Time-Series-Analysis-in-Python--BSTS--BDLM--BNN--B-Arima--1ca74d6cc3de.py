@@ -37,7 +37,7 @@ def load_data(file_name="ercot_load_data.csv"):
     return df
 
 # === Modular Visualization Function ===
-def plot_forecast(df, forecast_index, forecast_mean, forecast_lower, forecast_upper, model_name):
+def plot_forecast(df, forecast_index, forecast_mean, forecast_lower, forecast_upper, model_name, plot: bool = False):
     """
     Plots the historical data, forecast, and confidence intervals for the last 25 points.
 
@@ -50,33 +50,34 @@ def plot_forecast(df, forecast_index, forecast_mean, forecast_lower, forecast_up
     - model_name: Name of the model for the title and filename
     """
     # Plot all historical data
-    plt.figure(figsize=(15, 8))
-    plt.plot(df.index, df['values'], label='Actual', color='blue')
+    if plot:
+        plt.figure(figsize=(15, 8))
+        plt.plot(df.index, df['values'], label='Actual', color='blue')
 
     # Plot the forecast for the last 25 points
-    plt.plot(forecast_index, forecast_mean, label='Forecast', color='red', linestyle='--')
-    plt.fill_between(
-        forecast_index, 
-        forecast_lower, 
-        forecast_upper, 
-        color='red', alpha=0.2, label='95% Confidence Interval'
-    )
+        plt.plot(forecast_index, forecast_mean, label='Forecast', color='red', linestyle='--')
+        plt.fill_between(
+            forecast_index, 
+            forecast_lower, 
+            forecast_upper, 
+            color='red', alpha=0.2, label='95% Confidence Interval'
+        )
 
     # Add dashed vertical line where holdout set begins
-    holdout_start = df.index[-len(forecast_index)]
-    plt.axvline(x=holdout_start, color='black', linestyle='--', label='Holdout Start')
+        holdout_start = df.index[-len(forecast_index)]
+        plt.axvline(x=holdout_start, color='black', linestyle='--', label='Holdout Start')
 
     # Customizations
-    plt.title(f'{model_name} Forecast')
-    plt.xlabel('Time')
-    plt.ylabel('Demand')
-    plt.legend()
-    ax = plt.gca()
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    plt.tight_layout()
-    plt.savefig(f'{model_name.lower()}_forecast.png')
-    plt.show()
+        plt.title(f'{model_name} Forecast')
+        plt.xlabel('Time')
+        plt.ylabel('Demand')
+        plt.legend()
+        ax = plt.gca()
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        plt.tight_layout()
+        plt.savefig(f'{model_name.lower()}_forecast.png')
+        plt.show()
 
 # === Simplified Bayesian Structural Time Series (BSTS) ===
 def bayesian_sts(df, forecast_horizon=25):
