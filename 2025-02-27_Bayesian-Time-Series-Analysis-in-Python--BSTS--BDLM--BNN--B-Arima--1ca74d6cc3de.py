@@ -7,7 +7,6 @@ from pyro.infer import SVI, Trace_ELBO
 from pyro.infer.autoguide import AutoDiagonalNormal
 from pyro.nn import PyroModule, PyroSample
 from pyro.optim import Adam
-from sklearn.metrics import mean_squared_error
 from tqdm import trange
 import logging
 import matplotlib.pyplot as plt
@@ -128,7 +127,7 @@ def bayesian_bdlm(df, forecast_horizon=25):
     train = df.iloc[:-forecast_horizon]
 
     # Fit BDLM model
-    with pm.Model() as model:
+    with pm.Model():
         sigma = pm.HalfNormal('sigma', sigma=1)
         trend_sigma = pm.HalfNormal('trend_sigma', sigma=0.1)
         seasonal_sigma = pm.HalfNormal('seasonal_sigma', sigma=0.1)
@@ -141,7 +140,7 @@ def bayesian_bdlm(df, forecast_horizon=25):
         idx = np.arange(len(train)) % period
         mu = trend + seasonal[idx]
         
-        y = pm.Normal('y', mu=mu, sigma=sigma, observed=train['values'])
+        pm.Normal('y', mu=mu, sigma=sigma, observed=train['values'])
         
         trace = pm.sample(2000, tune=1000, return_inferencedata=False)
     
@@ -206,7 +205,7 @@ def bayesian_nn(df, forecast_horizon=25):
             
             sigma = pyro.sample("sigma", dist.Gamma(1.0, 1.0))
             with pyro.plate("data", x.shape[0]):
-                obs = pyro.sample("obs", dist.Normal(mu, sigma), obs=y)
+                pyro.sample("obs", dist.Normal(mu, sigma), obs=y)
             return mu
 
     # Train the BNN model
