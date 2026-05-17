@@ -56,41 +56,42 @@ def plot_forecast(
     - forecast_upper: Upper bound of the confidence interval
     - model_name: Name of the model for the title and filename
     """
-    # Plot all historical data
-    if plot:
-        plt.figure(figsize=(15, 8))
-        plt.plot(df.index, df["values"], label="Actual", color="blue")
+    if not plot:
+        return
 
-        # Plot the forecast for the last 25 points
-        plt.plot(
-            forecast_index, forecast_mean, label="Forecast", color="red", linestyle="--"
-        )
-        plt.fill_between(
-            forecast_index,
-            forecast_lower,
-            forecast_upper,
-            color="red",
-            alpha=0.2,
-            label="95% Confidence Interval",
-        )
+    plt.figure(figsize=(15, 8))
+    plt.plot(df.index, df["values"], label="Actual", color="blue")
 
-        # Add dashed vertical line where holdout set begins
-        holdout_start = df.index[-len(forecast_index)]
-        plt.axvline(
-            x=holdout_start, color="black", linestyle="--", label="Holdout Start"
-        )
+    # Plot the forecast for the last 25 points
+    plt.plot(
+        forecast_index, forecast_mean, label="Forecast", color="red", linestyle="--"
+    )
+    plt.fill_between(
+        forecast_index,
+        forecast_lower,
+        forecast_upper,
+        color="red",
+        alpha=0.2,
+        label="95% Confidence Interval",
+    )
 
-        # Customizations
-        plt.title(f"{model_name} Forecast")
-        plt.xlabel("Time")
-        plt.ylabel("Demand")
-        plt.legend()
-        ax = plt.gca()
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        plt.tight_layout()
-        plt.savefig(f"{model_name.lower()}_forecast.png")
-        plt.show()
+    # Add dashed vertical line where holdout set begins
+    holdout_start = df.index[-len(forecast_index)]
+    plt.axvline(
+        x=holdout_start, color="black", linestyle="--", label="Holdout Start"
+    )
+
+    # Customizations
+    plt.title(f"{model_name} Forecast")
+    plt.xlabel("Time")
+    plt.ylabel("Demand")
+    plt.legend()
+    ax = plt.gca()
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    plt.tight_layout()
+    plt.savefig(f"{model_name.lower()}_forecast.png")
+    plt.show()
 
 
 # === Simplified Bayesian Structural Time Series (BSTS) ===
