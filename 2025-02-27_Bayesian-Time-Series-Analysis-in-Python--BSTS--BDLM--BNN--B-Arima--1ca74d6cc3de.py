@@ -1,6 +1,5 @@
 # Description: Short example for Bayesian Time Series Analysis in Python BSTS BDLM BNN B Arima.
 
-
 import logging
 
 import matplotlib.pyplot as plt
@@ -47,7 +46,6 @@ def plot_forecast(
 ):
     """
     Plots the historical data, forecast, and confidence intervals for the last 25 points.
-
     Parameters:
     - df: DataFrame containing the historical data
     - forecast_index: Index for the forecasted values
@@ -61,7 +59,6 @@ def plot_forecast(
 
     plt.figure(figsize=(15, 8))
     plt.plot(df.index, df["values"], label="Actual", color="blue")
-
     # Plot the forecast for the last 25 points
     plt.plot(
         forecast_index, forecast_mean, label="Forecast", color="red", linestyle="--"
@@ -74,13 +71,9 @@ def plot_forecast(
         alpha=0.2,
         label="95% Confidence Interval",
     )
-
     # Add dashed vertical line where holdout set begins
     holdout_start = df.index[-len(forecast_index)]
-    plt.axvline(
-        x=holdout_start, color="black", linestyle="--", label="Holdout Start"
-    )
-
+    plt.axvline(x=holdout_start, color="black", linestyle="--", label="Holdout Start")
     # Customizations
     plt.title(f"{model_name} Forecast")
     plt.xlabel("Time")
@@ -97,7 +90,6 @@ def plot_forecast(
 # === Simplified Bayesian Structural Time Series (BSTS) ===
 def bayesian_sts(df, forecast_horizon=25):
     train = df["values"].iloc[:-forecast_horizon].values
-
     # Define and fit the BSTS model
     specification = {
         "ar_order": 1,
@@ -105,7 +97,6 @@ def bayesian_sts(df, forecast_horizon=25):
         "sigma_prior": np.std(train, ddof=1),
         "initial_value": train[0],
     }
-
     model = pybsts.PyBsts(
         "gaussian",
         specification,
@@ -117,15 +108,12 @@ def bayesian_sts(df, forecast_horizon=25):
             "seed": 42,
         },
     )
-
     model.fit(train, seed=42)
     forecast = model.predict(seed=42)
     forecast_mean = np.mean(forecast, axis=0)
     forecast_std = np.std(forecast, axis=0)
-
     # Forecast index for the last 25 points
     forecast_index = df.index[-forecast_horizon:]
-
     # Use modular visualization
     plot_forecast(
         df,
@@ -135,44 +123,34 @@ def bayesian_sts(df, forecast_horizon=25):
         forecast_mean + 1.96 * forecast_std,
         model_name="BSTS",
     )
-
     return forecast_mean
 
 
 # === Simplified BDLM with Confidence Interval ===
 def bayesian_bdlm(df, forecast_horizon=25):
     train = df.iloc[:-forecast_horizon]
-
     # Fit BDLM model
     with pm.Model():
         sigma = pm.HalfNormal("sigma", sigma=1)
         trend_sigma = pm.HalfNormal("trend_sigma", sigma=0.1)
         seasonal_sigma = pm.HalfNormal("seasonal_sigma", sigma=0.1)
-
         trend = pm.GaussianRandomWalk("trend", sigma=trend_sigma, shape=len(train))
-
         period = 24
         seasonal = pm.Normal("seasonal", mu=0, sigma=seasonal_sigma, shape=period)
-
         idx = np.arange(len(train)) % period
         mu = trend + seasonal[idx]
-
         pm.Normal("y", mu=mu, sigma=sigma, observed=train["values"])
-
         trace = pm.sample(2000, tune=1000, return_inferencedata=False)
 
     # Forecasting
     trend_pred = np.mean(trace["trend"], axis=0)
     seasonal_pred = np.mean(trace["seasonal"], axis=0)
     predictions = trend_pred + seasonal_pred[idx]
-
     # Calculate 95% credible intervals
     lower_bound = np.percentile(trace["trend"], 2.5, axis=0) + seasonal_pred[idx]
     upper_bound = np.percentile(trace["trend"], 97.5, axis=0) + seasonal_pred[idx]
-
     # Forecast index for the last 25 points
     forecast_index = df.index[-forecast_horizon:]
-
     # Use modular visualization
     plot_forecast(
         df,
@@ -182,7 +160,6 @@ def bayesian_bdlm(df, forecast_horizon=25):
         upper_bound[-forecast_horizon:],
         model_name="BDLM",
     )
-
     return predictions[-forecast_horizon:]
 
 
@@ -208,7 +185,6 @@ def bayesian_nn(df, forecast_horizon=25):
             self.hidden2 = PyroModule[nn.Linear](hidden_dim, hidden_dim)
             self.output = PyroModule[nn.Linear](hidden_dim, output_dim)
             self.activation = nn.ReLU()
-
             self.hidden1.weight = PyroSample(
                 dist.Normal(0.0, 1.0).expand([hidden_dim, input_dim]).to_event(2)
             )
@@ -232,7 +208,6 @@ def bayesian_nn(df, forecast_horizon=25):
             x = self.activation(self.hidden1(x))
             x = self.activation(self.hidden2(x))
             mu = self.output(x).squeeze(-1)
-
             sigma = pyro.sample("sigma", dist.Gamma(1.0, 1.0))
             with pyro.plate("data", x.shape[0]):
                 pyro.sample("obs", dist.Normal(mu, sigma), obs=y)
@@ -243,7 +218,6 @@ def bayesian_nn(df, forecast_horizon=25):
     guide = AutoDiagonalNormal(model)
     adam = Adam({"lr": 0.01})
     svi = SVI(model, guide, adam, loss=Trace_ELBO())
-
     num_epochs = 1000
     for epoch in trange(num_epochs):
         svi.step(X_train, y_train)
@@ -258,10 +232,8 @@ def bayesian_nn(df, forecast_horizon=25):
         return mean_pred, std_pred
 
     mean_pred, std_pred = predict_bnn(model, guide, X_test)
-
     # Forecast index for the last 25 points
     forecast_index = df.index[-forecast_horizon:]
-
     # Use modular visualization
     plot_forecast(
         df,
@@ -271,14 +243,12 @@ def bayesian_nn(df, forecast_horizon=25):
         mean_pred + 1.96 * std_pred,
         model_name="BNN",
     )
-
     return mean_pred
 
 
 # ===Bayesian ARIMA ===
 def bayesian_arima(df, forecast_horizon=25):
     train = df["values"].iloc[:-forecast_horizon].values
-
     # Train ARIMA on the training set
     arima = pmd.auto_arima(
         train,
@@ -300,13 +270,11 @@ def bayesian_arima(df, forecast_horizon=25):
         suppress_warnings=True,
         stepwise=True,
     )
-
     # Forecast the last 25 points
     barima_forecast, conf_int = arima.predict(
         n_periods=forecast_horizon, return_conf_int=True
     )
     forecast_index = df.index[-forecast_horizon:]
-
     # Use modular visualization
     plot_forecast(
         df,
@@ -316,7 +284,6 @@ def bayesian_arima(df, forecast_horizon=25):
         conf_int[:, 1],
         model_name="Bayesian ARIMA",
     )
-
     return barima_forecast
 
 
@@ -329,25 +296,20 @@ def bayesian_arima(df, forecast_horizon=25):
 # === Main Function ===
 def main():
     df = load_data()
-
     barima_forecast = bayesian_arima(df)
     bnn_forecast = bayesian_nn(df)
     bdlm_forecast = bayesian_bdlm(df)
     bsts_forecast = bayesian_sts(df)
-
     y_true = df["values"].values[-25:]
-
     metrics = {
         "Bayesian ARIMA": calculate_metrics(y_true, barima_forecast),
         "BNN with Pyro": calculate_metrics(y_true, bnn_forecast),
         "BDLM": calculate_metrics(y_true, bdlm_forecast),
         "BSTS": calculate_metrics(y_true, bsts_forecast),
     }
-
     # Convert to DataFrame for better readability
     df_metrics = pd.DataFrame(metrics, index=["MSE", "RMSE", "MAPE", "sMAPE"]).T
     logger.info(df_metrics)
-
     # Plot comparison
     df_metrics.plot(kind="bar", figsize=(15, 8))
     plt.title("Model Comparison")
